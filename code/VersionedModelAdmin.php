@@ -1,4 +1,5 @@
 <?php
+
 /**
  * VersionedModelAdmin
  * replaces the scaffolded gridfield for versioned objects with a VersionedGridFieldDetailForm
@@ -8,14 +9,13 @@
  */
 class VersionedModelAdmin extends Extension {
 
-	function updateEditForm($form) {
-
+	public function updateEditForm($form) {
 		$fieldList = $form->Fields();
 
 		foreach($fieldList as $field) {
 			if($field instanceof GridField) {
 				$class = $field->getList()->dataClass();
-				if(Object::has_extension($class, "Versioned")) {
+				if($class::has_extension($class, "Versioned")) {
 					$config = $field->getConfig();
 					$config->removeComponentsByType('GridFieldDeleteAction')
 						->removeComponentsByType('GridFieldDetailForm')
