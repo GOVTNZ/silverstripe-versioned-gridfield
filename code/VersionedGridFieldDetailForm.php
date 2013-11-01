@@ -195,13 +195,13 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		}
 
 		$origStage = Versioned::current_stage();
-		Versioned::reading_stage('Stage.Live');
+		Versioned::set_reading_mode('Stage.Live');
 
 		// This way our ID won't be unset
 		$clone = clone $record;
 		$clone->delete();
 
-		Versioned::set_reading_mode($origState);
+		Versioned::set_reading_mode($origStage);
 
 		$message = sprintf(
 			'Unpublished %s %s',
