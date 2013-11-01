@@ -4,8 +4,6 @@
  * VersionedModelAdmin
  * replaces the scaffolded gridfield for versioned objects with a VersionedGridFieldDetailForm
  * See README for details 
- *
- * @author Tim Klein, Dodat Ltd <tim[at]dodat[dot]co[dot]nz>
  */
 class VersionedModelAdmin extends Extension {
 
