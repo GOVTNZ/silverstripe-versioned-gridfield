@@ -123,11 +123,16 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			);
 		}
 
-		if ($this->canPublish() && !$this->IsDeletedFromStage) {
+		if ($this->canPublish() && !$this->IsDeletedFromStage && !$this->isNew()) {
 			// "publish"
 			$actions->push(
 				FormAction::create('doPublish', _t('SiteTree.BUTTONSAVEPUBLISH', 'Save & Publish'))
 					->setUseButtonTag(true)->addExtraClass('ss-ui-action-constructive')->setAttribute('data-icon', 'accept')
+			);
+		} else {
+			$actions->push(
+				FormAction::create('doPublish', _t('SiteTree.BUTTONSAVEPUBLISH', 'Save & Publish'))
+					->setUseButtonTag(true)->addExtraClass('ss-ui-action-constructive')->setAttribute('data-icon', 'accept')->setDisabled(true)
 			);
 		}
 
