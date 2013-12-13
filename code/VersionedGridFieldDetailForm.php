@@ -254,7 +254,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$clone->delete();
 		//manually deleting all orphaned _version records
 		DB::query("DELETE FROM \"{$this->baseTable()}_versions\" WHERE \"RecordID\" = '{$record->ID}'");
-		return $controller->redirect($noActionURL, 302); //redirect back to admin section
+		return $controller->redirect($this->getBackLink(), 302); // redirect back
 	}
 
 	/**
