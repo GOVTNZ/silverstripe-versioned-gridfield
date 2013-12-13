@@ -112,7 +112,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			if($this->canDelete() && !$this->isNew() && !$this->isPublished()) {
 				// "delete"
 				$minorActions->push(
-					FormAction::create('doDelete', 'Delete')->addExtraClass('delete ss-ui-action-destructive')
+					FormAction::create('doDelete', 'Delete')->addExtraClass('action-delete ss-ui-action-destructive')
 						->setAttribute('data-icon', 'decline')->setUseButtonTag(true)
 				);
 			}
