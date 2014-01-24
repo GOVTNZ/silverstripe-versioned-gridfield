@@ -225,7 +225,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$message = "Cancelled Draft changes for \"" . htmlspecialchars($record->Title, ENT_QUOTES) . "\"</a>";
 		
 		$form->sessionMessage($message, 'good');
-		return Controller::curr()->redirect($this->Link('edit'));
+		return $this->edit(Controller::curr()->getRequest());
 	}
 
 	public function doDelete($data, $form) {
