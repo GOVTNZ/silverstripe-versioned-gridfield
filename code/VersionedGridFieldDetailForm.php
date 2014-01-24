@@ -222,7 +222,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 
 		$record->publish("Live", "Stage", false);
 
-		$message = "Cancelled Draft changes for \"" . htmlspecialchars($record->Title, ENT_QUOTES) . "\"</a>";
+		$message = "Cancelled Draft changes for \"" . htmlspecialchars($record->Title, ENT_QUOTES) . "\"";
 		
 		$form->sessionMessage($message, 'good');
 		return $this->edit(Controller::curr()->getRequest());
