@@ -14,7 +14,8 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 	private static $allowed_actions = array(
 		'edit',
 		'view',
-		'ItemEditForm'
+		'ItemEditForm',
+		'silentPublish'
 	);
 
 	/**
@@ -148,7 +149,13 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 				)
 			);
 		}
-		
+
+        if ($this->isPublished()) {
+            $minorActions->push(
+                FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
+            );
+        }
+
 		return $actions;
 	}
 
@@ -191,6 +198,26 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$form->sessionMessage($message, 'good');
 		return $this->edit(Controller::curr()->getRequest());
 	}
+	
+	/**
+	 * Publishes a page silently by preventing it's LastEdited field from being updated.
+	 * This allows minor edits (e.g. fixing typos) to be made without the having the page
+	 * jump to the top of RSS feeds
+	 *
+     * @param array $data Array of submitted form values
+	 * @param Form $form The SilverStripe Form object
+	 * @return SS_HTTPResponse
+	 */
+	public function silentPublish($data, $form) {
+		// Get the LastEdited value of the currently published version of this page
+        $original = Versioned::current_stage();
+        $lastEdited = $original->LastEdited;
+        // Invoke existing doPublish
+        $response = $this->doPublish($data, $form);
+        // update LastEdited for the newly published page to it's old value
+		DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
+		return $response;
+	}	
 
 	public function doUnpublish($data, $form) {
 		$record = $this->record;
