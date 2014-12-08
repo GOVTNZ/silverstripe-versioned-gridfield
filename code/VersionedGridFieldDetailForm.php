@@ -217,8 +217,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
         // update LastEdited for the newly published page to it's old value
 		DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
 		return $response;
-	}	
-
+	}
 	public function doUnpublish($data, $form) {
 		$record = $this->record;
 
