@@ -210,7 +210,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 	 */
 	public function silentPublish($data, $form) {
 		// Get the LastEdited value of the currently published version of this page
-        $original = Versioned::current_stage();
+        $original = Versioned::get_one_by_stage("SiteTree", "Live", "\"SiteTree\".\"ID\" = ".$this->record->ID);
         $lastEdited = $original->LastEdited;
         // Invoke existing doPublish
         $response = $this->doPublish($data, $form);
