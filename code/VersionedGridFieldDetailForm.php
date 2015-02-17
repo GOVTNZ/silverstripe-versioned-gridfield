@@ -173,16 +173,17 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		}
 		// This is a bit hacky, however from what I understand ModelAdmin / GridField dont use the SilverStripe navigator, this will do for now just fine.
 		if($this->canPreview()) {
-		  //Ensure Link method is defined & non-null before allowing preview
-		  if(method_exists($this->record, 'Link') && $this->record->Link()){
-			$actions->push(
-				LiteralField::create("preview",
-					sprintf("<a href=\"%s\" class=\"ss-ui-button\" data-icon=\"preview\" target=\"_blank\">%s &raquo;</a>",
-						$this->record->Link()."?stage=Stage",
-						_t('LeftAndMain.PreviewButton', 'Preview')
+			//Ensure Link method is defined & non-null before allowing preview
+			if(method_exists($this->record, 'Link') && $this->record->Link()) {
+				$actions->push(
+					LiteralField::create("preview",
+						sprintf("<a href=\"%s\" class=\"ss-ui-button\" data-icon=\"preview\" target=\"_blank\">%s &raquo;</a>",
+							$this->record->Link()."?stage=Stage",
+							_t('LeftAndMain.PreviewButton', 'Preview')
+						)
 					)
-				)
-			);
+				);
+			}
 		}
 
         if ($this->isPublished()) {
