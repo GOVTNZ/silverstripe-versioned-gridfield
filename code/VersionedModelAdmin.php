@@ -7,15 +7,17 @@
  */
 class VersionedModelAdmin extends Extension {
 
-	public function updateEditForm(CMSForm $form) {
+	function onBeforeInit() {
+		Versioned::reading_stage('Stage');
+	}
+
+	function updateEditForm($form) {
 		$fieldList = $form->Fields();
 
 		foreach($fieldList as $field) {
 			if($field instanceof GridField) {
 				$class = $field->getList()->dataClass();
-				if($class::has_extension($class, "Versioned")) {
-					$field->setList(Versioned::get_by_stage($class, 'Stage'));
-
+				if($class::has_extension("Versioned")) {
 					$config = $field->getConfig();
 					$config->removeComponentsByType('GridFieldDeleteAction')
 						->removeComponentsByType('GridFieldDetailForm')
