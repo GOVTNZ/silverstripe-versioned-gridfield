@@ -3,7 +3,7 @@ silverstripe-versioned-gridfield / Versioned Model Admin
 
 ## Requirements
 
- * SilverStripe 3.1 or newer
+ * SilverStripe 3.1 
 
 ## Introduction
 

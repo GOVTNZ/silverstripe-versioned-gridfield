@@ -6,6 +6,34 @@
  * See README for details 
  */
 class VersionedGridFieldDetailForm extends GridFieldDetailForm {
+
+	public function handleItem($gridField, $request) {
+		$controller = $gridField->getForm()->Controller();
+
+		//resetting datalist on gridfield to ensure edited object is in list
+		//this was causing errors when the modified object was no longer in the results
+		$list = $gridField->getList();
+		$list = $list->setDataQuery(new DataQuery($list->dataClass()));
+
+		if(is_numeric($request->param('ID'))) {
+			$record = $list->byId($request->param("ID"));
+		} else {
+			$record = Object::create($gridField->getModelClass());	
+		}
+
+		$class = $this->getItemRequestClass();
+
+		$handler = Object::create($class, $gridField, $this, $record, $controller, $this->name);
+		$handler->setTemplate($this->template);
+
+		// if no validator has been set on the GridField and the record has a
+		// CMS validator, use that.
+		if(!$this->getValidator() && method_exists($record, 'getCMSValidator')) {
+			$this->setValidator($record->getCMSValidator());
+		}
+
+		return $handler->handleRequest($request, DataModel::inst());
+	}
 	
 }
 
@@ -17,16 +45,15 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		'ItemEditForm',
 		'silentPublish'
 	);
-
-	/**
-	 * Check if this page has been saved before
-	 *
-	 * @return bool True if this page is new
-	 */
-	public function isNew() {
-		if (empty($this->record->ID)) {
-			return true;
-		}
+	
+	function isNew() {
+		/**
+		 * This check was a problem for a self-hosted site, and may indicate a
+		 * bug in the interpreter on their server, or a bug here
+		 * Changing the condition from empty($this->ID) to
+		 * !$this->ID && !$this->record['ID'] fixed this.
+		 */
+		if(empty($this->record->ID)) return true;
 
 		if (is_numeric($this->record->ID)) {
 			return false;
@@ -45,9 +72,11 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			return false;
 		}
 
-		$result = DB::query('SELECT "ID" FROM "' . $this->baseTable() . '_Live" WHERE "ID" = ' . $this->record->ID);
+		$record = $this->record;
 
-		return !is_null($result->value());
+		return Versioned::get_by_stage($this->baseTable(), 'Live')->byID($record->ID)
+			? true
+			: false;
 	}
 
 	public function baseTable() {
@@ -76,8 +105,14 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		return $this->record->canDelete();
 	}
 
-	public function canPreview() {
-		return (in_array('CMSPreviewable', class_implements($this->record)) && !$this->isNew());
+	function canPreview() {
+		$can = false;
+		$can = in_array('CMSPreviewable', class_implements($this->record));
+		if(method_exists("canPreview", $this->record)) {
+			$can = $this->record->canPreview();
+		}
+
+		return ($can && !$this->isNew());
 	}
 
 	public function getCMSActions() {
@@ -136,18 +171,19 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 					->setUseButtonTag(true)->addExtraClass('ss-ui-action-constructive')->setAttribute('data-icon', 'accept')->setDisabled(true)
 			);
 		}
-
 		// This is a bit hacky, however from what I understand ModelAdmin / GridField dont use the SilverStripe navigator, this will do for now just fine.
-		// ensure link method is defined & non-null before allowing preview
-		if ($this->canPreview() && method_exists($this->record, 'Link') && $this->record->Link()) {
-			$actions->push(
-				LiteralField::create("preview",
-					sprintf("<a href=\"%s\" class=\"ss-ui-button\" data-icon=\"preview\" target=\"_blank\">%s &raquo;</a>",
-						$this->record->Link()."?stage=Stage",
-						_t('LeftAndMain.PreviewButton', 'Preview')
+		if($this->canPreview()) {
+			//Ensure Link method is defined & non-null before allowing preview
+			if(method_exists($this->record, 'Link') && $this->record->Link()) {
+				$actions->push(
+					LiteralField::create("preview",
+						sprintf("<a href=\"%s\" class=\"ss-ui-button\" data-icon=\"preview\" target=\"_blank\">%s &raquo;</a>",
+							$this->record->Link()."?stage=Stage",
+							_t('LeftAndMain.PreviewButton', 'Preview')
+						)
 					)
-				)
-			);
+				);
+			}
 		}
 
         if ($this->isPublished()) {
@@ -155,6 +191,8 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
                 FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
             );
         }
+
+		$this->extend('updateCMSActions', $actions);
 
 		return $actions;
 	}
@@ -187,12 +225,19 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$form->saveInto($record);
 		$record->writeToStage('Stage');
 		$this->gridField->getList()->add($record);
-		$record->publish("Stage", "Live");
+
+		// use doPublish if it's defined on the object (like SiteTree) which
+		// includes extension calls.
+		if($record->hasMethod('doPublish')) {
+			$record->doPublish();
+		} else {
+			$record->publish('Stage', 'Live');
+		}
 
 		$message = sprintf(
 			_t('GridFieldDetailForm.Published', 'Published %s %s'),
 			$this->record->singular_name(),
-			'"' . htmlspecialchars($this->record->Title, ENT_QUOTES) . '"'
+			'"'.Convert::raw2xml($this->record->Title).'"'
 		);
 		
 		$form->sessionMessage($message, 'good');
@@ -218,6 +263,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
 		return $response;
 	}
+
 	public function doUnpublish($data, $form) {
 		$record = $this->record;
 
@@ -237,7 +283,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$message = sprintf(
 			'Unpublished %s %s',
 			$this->record->singular_name(),
-			'"' . htmlspecialchars($this->record->Title, ENT_QUOTES) . '"'
+			'"'.Convert::raw2xml($this->record->Title).'"'
 		);
 		$form->sessionMessage($message, 'good');
 		return $this->edit(Controller::curr()->getRequest());
@@ -247,8 +293,8 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$record = $this->record;
 
 		$record->publish("Live", "Stage", false);
-
-		$message = "Cancelled Draft changes for \"" . htmlspecialchars($record->Title, ENT_QUOTES) . "\"";
+		//$record->writeWithoutVersion();
+		$message = "Cancelled Draft changes for \"".Convert::raw2xml($record->Title)."\"";
 		
 		$form->sessionMessage($message, 'good');
 		return $this->edit(Controller::curr()->getRequest());
@@ -270,22 +316,21 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$message = sprintf(
 			_t('GridFieldDetailForm.Deleted', 'Deleted %s %s'),
 			$this->record->singular_name(),
-			'"' . htmlspecialchars($this->record->Title, ENT_QUOTES) . '"'
+			'"'.Convert::raw2xml($this->record->Title).'"'
 		);
+		// due to redirect back this isn't shown until too late.
+		//$form->sessionMessage($message, 'good');
 
-		$form->sessionMessage($message, 'good');
-
-		$controller = Controller::curr();
-		$noActionURL = $controller->removeAction($data['url']);
-		$controller->getRequest()->addHeader('X-Pjax', 'Content'); // Force a content refresh
 		//double check that this deletes all versions
-
 		$clone = clone $record;
 		$clone->deleteFromStage("Stage");
 		$clone->delete();
 		//manually deleting all orphaned _version records
 		DB::query("DELETE FROM \"{$this->baseTable()}_versions\" WHERE \"RecordID\" = '{$record->ID}'");
-		return $controller->redirect($this->getBackLink(), 302); // redirect back
+		
+		$controller = $this->getToplevelController();
+		$controller->getRequest()->addHeader('X-Pjax', 'Content'); // Force a content refresh
+		return $controller->redirect($this->getBacklink(), 302); //redirect back to admin section
 	}
 
 	/**
@@ -296,7 +341,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		$record = $this->record;
 		// if no record can be found on draft stage (meaning it has been "deleted from draft" before),
 		// create an empty record
-		if(!DB::query("SELECT \"ID\" FROM \"{$this->baseTable()}\" WHERE \"ID\" = $record->ID")->value()) {
+		if(!Versioned::get_by_stage($this->baseTable(), 'Stage')->byID($record->ID)) {
 			$conn = DB::getConn();
 			if(method_exists($conn, 'allowPrimaryKeyEditing')) $conn->allowPrimaryKeyEditing($record->class, true);
 			DB::query("INSERT INTO \"{$this->baseTable()}\" (\"ID\") VALUES ($this->ID)");
