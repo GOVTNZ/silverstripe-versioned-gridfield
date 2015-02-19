@@ -46,7 +46,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		'silentPublish'
 	);
 	
-	function isNew() {
+	public function isNew() {
 		/**
 		 * This check was a problem for a self-hosted site, and may indicate a
 		 * bug in the interpreter on their server, or a bug here
@@ -105,7 +105,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		return $this->record->canDelete();
 	}
 
-	function canPreview() {
+	public function canPreview() {
 		$can = false;
 		$can = in_array('CMSPreviewable', class_implements($this->record));
 		if(method_exists("canPreview", $this->record)) {
@@ -298,7 +298,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		return $this->edit(Controller::curr()->getRequest());
 	}
 	
-	function doRollback($data, $form) {
+	public function doRollback($data, $form) {
 		$record = $this->record;
 
 		$record->publish("Live", "Stage", false);
