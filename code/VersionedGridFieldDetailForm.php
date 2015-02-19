@@ -253,18 +253,23 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 	 * This allows minor edits (e.g. fixing typos) to be made without the having the page
 	 * jump to the top of RSS feeds
 	 *
-     * @param array $data Array of submitted form values
+	 * @param array $data Array of submitted form values
 	 * @param Form $form The SilverStripe Form object
 	 * @return SS_HTTPResponse
 	 */
 	public function silentPublish($data, $form) {
 		// Get the LastEdited value of the currently published version of this page
-        $original = Versioned::get_one_by_stage("SiteTree", "Live", "\"SiteTree\".\"ID\" = ".$this->record->ID);
-        $lastEdited = $original->LastEdited;
-        // Invoke existing doPublish
-        $response = $this->doPublish($data, $form);
-        // update LastEdited for the newly published page to it's old value
-		DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
+		$original = Versioned::get_one_by_stage("SiteTree", "Live", "\"SiteTree\".\"ID\" = ".$this->record->ID);
+		$lastEdited = $original->LastEdited;
+
+		// Invoke existing doPublish
+		$response = $this->doPublish($data, $form);
+
+		if (!$response->isError()) {
+			// if the response to doPublish is OK, update LastEdited for the newly published page to it's old value.
+			DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
+		}
+
 		return $response;
 	}
 
