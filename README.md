@@ -155,3 +155,17 @@ class Provider extends DataObject {
 
 }
 ```
+
+### Silent publish
+
+You may want to offer a silent publish action in addition to the usual
+publishing actions. This is useful for minor typographical errors. It does
+regular publish, but does not update LastEdited.
+
+To do this, use the configuration system to enable it for classes where you want it:
+
+	config.yml:
+	  MyClass:
+	    allow_silent_publish: 1
+
+By default, this is disabled.
