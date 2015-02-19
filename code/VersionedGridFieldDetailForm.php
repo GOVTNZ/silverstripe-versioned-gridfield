@@ -186,11 +186,15 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			}
 		}
 
-        if ($this->isPublished()) {
-            $minorActions->push(
-                FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
-            );
-        }
+		// See if silent publish button should be added.
+		$conf = Config::inst();
+		if ($conf->get($classname, 'allow_silent_publish')) {
+			if ($this->isPublished() && $this->canPublish()) {
+				$minorActions->push(
+					FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
+				);
+			}
+		}
 
 		$this->extend('updateCMSActions', $actions);
 
