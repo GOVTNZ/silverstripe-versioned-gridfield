@@ -7,11 +7,11 @@
  */
 class VersionedModelAdmin extends Extension {
 
-	function onBeforeInit() {
+	public function onBeforeInit() {
 		Versioned::reading_stage('Stage');
 	}
 
-	function updateEditForm($form) {
+	public function updateEditForm($form) {
 		$fieldList = $form->Fields();
 
 		foreach($fieldList as $field) {

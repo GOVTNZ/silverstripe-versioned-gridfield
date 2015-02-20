@@ -46,7 +46,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		'silentPublish'
 	);
 	
-	function isNew() {
+	public function isNew() {
 		/**
 		 * This check was a problem for a self-hosted site, and may indicate a
 		 * bug in the interpreter on their server, or a bug here
@@ -105,7 +105,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		return $this->record->canDelete();
 	}
 
-	function canPreview() {
+	public function canPreview() {
 		$can = false;
 		$can = in_array('CMSPreviewable', class_implements($this->record));
 		if(method_exists("canPreview", $this->record)) {
@@ -186,11 +186,15 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			}
 		}
 
-        if ($this->isPublished()) {
-            $minorActions->push(
-                FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
-            );
-        }
+		// See if silent publish button should be added.
+		$conf = Config::inst();
+		if ($conf->get($classname, 'allow_silent_publish')) {
+			if ($this->isPublished() && $this->canPublish()) {
+				$minorActions->push(
+					FormAction::create('silentPublish', _t('Silent Save & Publish', 'Silent Save & Publish'))->setAttribute('data-icon', 'drive-upload')->setUseButtonTag(true)
+				);
+			}
+		}
 
 		$this->extend('updateCMSActions', $actions);
 
@@ -249,18 +253,23 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 	 * This allows minor edits (e.g. fixing typos) to be made without the having the page
 	 * jump to the top of RSS feeds
 	 *
-     * @param array $data Array of submitted form values
+	 * @param array $data Array of submitted form values
 	 * @param Form $form The SilverStripe Form object
 	 * @return SS_HTTPResponse
 	 */
 	public function silentPublish($data, $form) {
 		// Get the LastEdited value of the currently published version of this page
-        $original = Versioned::get_one_by_stage("SiteTree", "Live", "\"SiteTree\".\"ID\" = ".$this->record->ID);
-        $lastEdited = $original->LastEdited;
-        // Invoke existing doPublish
-        $response = $this->doPublish($data, $form);
-        // update LastEdited for the newly published page to it's old value
-		DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
+		$original = Versioned::get_one_by_stage("SiteTree", "Live", "\"SiteTree\".\"ID\" = ".$this->record->ID);
+		$lastEdited = $original->LastEdited;
+
+		// Invoke existing doPublish
+		$response = $this->doPublish($data, $form);
+
+		if (!$response->isError()) {
+			// if the response to doPublish is OK, update LastEdited for the newly published page to it's old value.
+			DB::query('UPDATE SiteTree_Live SET LastEdited = \'' . $lastEdited . '\' WHERE ID = ' . $this->record->ID);
+		}
+
 		return $response;
 	}
 
@@ -289,7 +298,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 		return $this->edit(Controller::curr()->getRequest());
 	}
 	
-	function doRollback($data, $form) {
+	public function doRollback($data, $form) {
 		$record = $this->record;
 
 		$record->publish("Live", "Stage", false);
