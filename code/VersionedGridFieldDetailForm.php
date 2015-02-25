@@ -269,8 +269,9 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 
 		// Invoke existing doPublish
 		$response = $this->doPublish($data, $form);
-
-		if ($response->class == 'HTMLText') {
+		$publishSucceeded = ($response->class == 'HTMLText');
+		
+		if ($publishSucceeded) {
 			// if the response to doPublish is OK, update LastEdited for the newly published page to it's old value.
 			DB::query('UPDATE "'. $base .'_Live" SET "LastEdited" = \'' . $lastEdited . '\' WHERE "ID" = ' . $this->record->ID);
 		}
