@@ -286,7 +286,7 @@ class VersionedGridFieldDetailForm_ItemRequest extends GridFieldDetailForm_ItemR
 			return Security::permissionFailure($this);
 		}
 
-		$origStage = Versioned::current_stage();
+		$origStage = Versioned::get_reading_mode();
 		Versioned::set_reading_mode('Stage.Live');
 
 		// This way our ID won't be unset
